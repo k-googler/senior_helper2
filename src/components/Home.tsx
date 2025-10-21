@@ -1,8 +1,11 @@
 import { useStore } from '../store/useStore';
 import { motion } from 'framer-motion';
+import { useRef, useState } from 'react';
 
 export const Home = () => {
-  const { projects, setMode, setCurrentProject, deleteProject } = useStore();
+  const { projects, setMode, setCurrentProject, deleteProject, exportProject, exportAllProjects, importProjects } = useStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   const handleCreateProject = () => {
     setCurrentProject(null);
@@ -26,6 +29,44 @@ export const Home = () => {
     }
   };
 
+  const handleExportProject = (projectId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    exportProject(projectId);
+  };
+
+  const handleExportAll = () => {
+    exportAllProjects();
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const result = await importProjects(text);
+
+      if (result.success) {
+        alert('프로젝트를 성공적으로 가져왔습니다!');
+      } else {
+        alert(result.error || '프로젝트 가져오기 실패');
+      }
+    } catch (error) {
+      alert('파일을 읽을 수 없습니다.');
+    } finally {
+      setIsImporting(false);
+      // 파일 입력 초기화
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -40,14 +81,47 @@ export const Home = () => {
           <p className="text-lg text-gray-600">어르신을 위한 앱 체험 교육 시스템</p>
         </motion.div>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleCreateProject}
-          className="w-full md:w-auto mx-auto block bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold shadow-lg hover:bg-indigo-700 transition-colors mb-8"
-        >
-          + 새 프로젝트 만들기
-        </motion.button>
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleCreateProject}
+            className="flex-1 bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold shadow-lg hover:bg-indigo-700 transition-colors"
+          >
+            + 새 프로젝트 만들기
+          </motion.button>
+
+          <div className="flex gap-2">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleImportClick}
+              disabled={isImporting}
+              className="bg-green-600 text-white px-6 py-4 rounded-xl text-lg font-semibold shadow-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isImporting ? '가져오는 중...' : '📥 가져오기'}
+            </motion.button>
+
+            {projects.length > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleExportAll}
+                className="bg-blue-600 text-white px-6 py-4 rounded-xl text-lg font-semibold shadow-lg hover:bg-blue-700 transition-colors"
+              >
+                📤 전체 내보내기
+              </motion.button>
+            )}
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        </div>
 
         {projects.length === 0 ? (
           <motion.div
@@ -98,21 +172,29 @@ export const Home = () => {
                     <span>📄 {project.screens.length}개 화면</span>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditProject(project.id);
+                        }}
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        편집
+                      </button>
+                      <button
+                        onClick={() => handleViewProject(project.id)}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        체험하기
+                      </button>
+                    </div>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditProject(project.id);
-                      }}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                      onClick={(e) => handleExportProject(project.id, e)}
+                      className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-medium transition-colors border border-blue-200"
                     >
-                      편집
-                    </button>
-                    <button
-                      onClick={() => handleViewProject(project.id)}
-                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                    >
-                      체험하기
+                      📤 내보내기
                     </button>
                   </div>
                 </div>

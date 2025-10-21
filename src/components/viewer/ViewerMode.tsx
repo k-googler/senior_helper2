@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { vibrate } from '../../utils/helpers';
-import { Screen, Hotspot } from '../../types';
+import { Hotspot } from '../../types';
 
 export const ViewerMode = () => {
   const {

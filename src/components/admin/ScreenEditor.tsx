@@ -24,7 +24,6 @@ export const ScreenEditor = ({ screenId }: ScreenEditorProps) => {
   const [currentDraw, setCurrentDraw] = useState<{ x: number; y: number } | null>(null);
   const [selectedHotspotId, setSelectedHotspotId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [editingName, setEditingName] = useState(false);
 
   const imageRef = useRef<HTMLDivElement>(null);
 
@@ -214,14 +213,14 @@ export const ScreenEditor = ({ screenId }: ScreenEditorProps) => {
                 left: `${hotspot.x}%`,
                 top: `${hotspot.y}%`,
               }}
-              onDragStop={(e, d) => {
+              onDragStop={(_e, d) => {
                 if (!imageRef.current) return;
                 const rect = imageRef.current.getBoundingClientRect();
                 const newX = (d.x / rect.width) * 100;
                 const newY = (d.y / rect.height) * 100;
                 handleUpdateHotspot(hotspot.id, { x: newX, y: newY });
               }}
-              onResizeStop={(e, direction, ref, delta, position) => {
+              onResizeStop={(_e, _direction, ref, _delta, position) => {
                 if (!imageRef.current) return;
                 const rect = imageRef.current.getBoundingClientRect();
                 const newWidth = (ref.offsetWidth / rect.width) * 100;

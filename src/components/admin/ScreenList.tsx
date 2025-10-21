@@ -48,7 +48,10 @@ export const ScreenList = ({ selectedScreenId, onSelectScreen }: ScreenListProps
     if (confirm('이 화면을 삭제하시겠습니까?')) {
       deleteScreen(screenId);
       if (selectedScreenId === screenId) {
-        onSelectScreen(screens[0]?.id || null);
+        const remainingScreens = screens.filter(s => s.id !== screenId);
+        if (remainingScreens.length > 0) {
+          onSelectScreen(remainingScreens[0].id);
+        }
       }
     }
   };
