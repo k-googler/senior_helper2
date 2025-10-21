@@ -12,6 +12,8 @@ interface AppState {
   addProject: (project: Project) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
+  deleteProjects: (ids: string[]) => void;
+  duplicateProject: (id: string) => void;
   setCurrentProject: (id: string | null) => void;
 
   // 화면 관리 (현재 프로젝트)
@@ -95,6 +97,43 @@ export const useStore = create<AppState>((set, get) => ({
     set((state) => ({
       projects: state.projects.filter((p) => p.id !== id),
       currentProjectId: state.currentProjectId === id ? null : state.currentProjectId,
+    }));
+    get().saveToStorage();
+  },
+
+  deleteProjects: (ids) => {
+    set((state) => ({
+      projects: state.projects.filter((p) => !ids.includes(p.id)),
+      currentProjectId: ids.includes(state.currentProjectId || '') ? null : state.currentProjectId,
+    }));
+    get().saveToStorage();
+  },
+
+  duplicateProject: (id) => {
+    const { projects } = get();
+    const projectToDuplicate = projects.find((p) => p.id === id);
+    if (!projectToDuplicate) return;
+
+    // 딥 클론 생성 (새로운 ID 할당)
+    const now = Date.now();
+    const duplicatedProject: Project = {
+      ...projectToDuplicate,
+      id: `project-${now}-${Math.random().toString(36).substr(2, 9)}`,
+      name: `${projectToDuplicate.name} (사본)`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      screens: projectToDuplicate.screens.map((screen, index) => ({
+        ...screen,
+        id: `screen-${now}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+        hotspots: screen.hotspots.map((hotspot, hIndex) => ({
+          ...hotspot,
+          id: `hotspot-${now}-${hIndex}-${Math.random().toString(36).substr(2, 9)}`,
+        })),
+      })),
+    };
+
+    set((state) => ({
+      projects: [...state.projects, duplicatedProject],
     }));
     get().saveToStorage();
   },
