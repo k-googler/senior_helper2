@@ -25,6 +25,15 @@ interface AppState {
   updateHotspot: (screenId: string, hotspotId: string, updates: Partial<Hotspot>) => void;
   deleteHotspot: (screenId: string, hotspotId: string) => void;
 
+  // Undo/Redo 기능
+  history: Project[][];
+  historyIndex: number;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
+  undo: () => void;
+  redo: () => void;
+  saveHistory: () => void;
+
   // 뷰어 상태
   viewerState: ViewerState;
   setCurrentScreen: (screenId: string | null) => void;
@@ -52,11 +61,15 @@ const initialViewerState: ViewerState = {
   startTime: null,
 };
 
+const MAX_HISTORY = 20; // 최대 히스토리 개수
+
 export const useStore = create<AppState>((set, get) => ({
   mode: 'home',
   projects: [],
   currentProjectId: null,
   viewerState: initialViewerState,
+  history: [],
+  historyIndex: -1,
 
   setMode: (mode) => set({ mode }),
 
@@ -93,6 +106,8 @@ export const useStore = create<AppState>((set, get) => ({
     const { currentProjectId } = get();
     if (!currentProjectId) return;
 
+    get().saveHistory(); // 히스토리 저장
+
     set((state) => ({
       projects: state.projects.map((p) =>
         p.id === currentProjectId
@@ -106,6 +121,8 @@ export const useStore = create<AppState>((set, get) => ({
   updateScreen: (screenId, updates) => {
     const { currentProjectId } = get();
     if (!currentProjectId) return;
+
+    get().saveHistory(); // 히스토리 저장
 
     set((state) => ({
       projects: state.projects.map((p) =>
@@ -125,6 +142,8 @@ export const useStore = create<AppState>((set, get) => ({
     const { currentProjectId } = get();
     if (!currentProjectId) return;
 
+    get().saveHistory(); // 히스토리 저장
+
     set((state) => ({
       projects: state.projects.map((p) =>
         p.id === currentProjectId
@@ -143,6 +162,8 @@ export const useStore = create<AppState>((set, get) => ({
     const { currentProjectId } = get();
     if (!currentProjectId) return;
 
+    get().saveHistory(); // 히스토리 저장
+
     set((state) => ({
       projects: state.projects.map((p) =>
         p.id === currentProjectId
@@ -157,6 +178,8 @@ export const useStore = create<AppState>((set, get) => ({
   addHotspot: (screenId, hotspot) => {
     const { currentProjectId } = get();
     if (!currentProjectId) return;
+
+    get().saveHistory(); // 히스토리 저장
 
     set((state) => ({
       projects: state.projects.map((p) =>
@@ -177,6 +200,8 @@ export const useStore = create<AppState>((set, get) => ({
   updateHotspot: (screenId, hotspotId, updates) => {
     const { currentProjectId } = get();
     if (!currentProjectId) return;
+
+    get().saveHistory(); // 히스토리 저장
 
     set((state) => ({
       projects: state.projects.map((p) =>
@@ -204,6 +229,8 @@ export const useStore = create<AppState>((set, get) => ({
   deleteHotspot: (screenId, hotspotId) => {
     const { currentProjectId } = get();
     if (!currentProjectId) return;
+
+    get().saveHistory(); // 히스토리 저장
 
     set((state) => ({
       projects: state.projects.map((p) =>
@@ -398,6 +425,81 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (error) {
       console.error('Failed to import projects:', error);
       return { success: false, error: 'JSON 파일을 읽을 수 없습니다.' };
+    }
+  },
+
+  // Undo/Redo 기능
+  saveHistory: () => {
+    const { projects, history, historyIndex } = get();
+
+    // 딥 클론을 위해 JSON 사용 (imageFile 제외)
+    const projectsClone = JSON.parse(
+      JSON.stringify(
+        projects.map((p) => ({
+          ...p,
+          screens: p.screens.map((s) => {
+            const { imageFile, ...screenWithoutFile } = s;
+            return screenWithoutFile;
+          }),
+        }))
+      )
+    );
+
+    // 현재 인덱스 이후의 히스토리 제거 (새로운 분기)
+    const newHistory = history.slice(0, historyIndex + 1);
+
+    // 새로운 상태 추가
+    newHistory.push(projectsClone);
+
+    // 최대 개수 제한
+    if (newHistory.length > MAX_HISTORY) {
+      newHistory.shift();
+    } else {
+      set({ historyIndex: historyIndex + 1 });
+    }
+
+    set({ history: newHistory });
+  },
+
+  canUndo: () => {
+    const { historyIndex } = get();
+    return historyIndex > 0;
+  },
+
+  canRedo: () => {
+    const { history, historyIndex } = get();
+    return historyIndex < history.length - 1;
+  },
+
+  undo: () => {
+    const { history, historyIndex } = get();
+
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      const previousState = history[newIndex];
+
+      set({
+        projects: previousState,
+        historyIndex: newIndex,
+      });
+
+      console.log('↶ Undo:', historyIndex, '→', newIndex);
+    }
+  },
+
+  redo: () => {
+    const { history, historyIndex } = get();
+
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      const nextState = history[newIndex];
+
+      set({
+        projects: nextState,
+        historyIndex: newIndex,
+      });
+
+      console.log('↷ Redo:', historyIndex, '→', newIndex);
     }
   },
 }));
