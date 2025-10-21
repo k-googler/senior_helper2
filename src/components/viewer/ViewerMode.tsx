@@ -13,6 +13,10 @@ export const ViewerMode = () => {
     setCurrentScreen,
     completeScreen,
     resetViewer,
+    startSession,
+    endSession,
+    recordCorrectClick,
+    recordWrongClick,
   } = useStore();
 
   const [showMessage, setShowMessage] = useState<string | null>(null);
@@ -27,11 +31,26 @@ export const ViewerMode = () => {
   );
 
   useEffect(() => {
-    // 첫 번째 화면으로 시작
+    // 첫 번째 화면으로 시작 및 세션 시작
     if (currentProject && currentProject.screens.length > 0 && !viewerState.currentScreenId) {
       setCurrentScreen(currentProject.screens[0].id);
+      startSession(currentProject.id, currentProject.name, currentProject.screens.length);
     }
-  }, [currentProject, viewerState.currentScreenId, setCurrentScreen]);
+  }, [currentProject, viewerState.currentScreenId, setCurrentScreen, startSession]);
+
+  useEffect(() => {
+    // 컴포넌트 언마운트 시 세션 종료
+    return () => {
+      endSession();
+    };
+  }, [endSession]);
+
+  useEffect(() => {
+    // 모든 화면 완료 시 세션 종료
+    if (currentProject && viewerState.currentScreenId === null && viewerState.completedScreens.length > 0) {
+      endSession();
+    }
+  }, [currentProject, viewerState.currentScreenId, viewerState.completedScreens, endSession]);
 
   useEffect(() => {
     // 음성 안내
@@ -45,6 +64,13 @@ export const ViewerMode = () => {
 
   const handleHotspotClick = async (hotspot: Hotspot, e: React.MouseEvent) => {
     if (isTransitioning) return;
+
+    // 통계 기록
+    if (hotspot.isCorrect) {
+      recordCorrectClick();
+    } else {
+      recordWrongClick();
+    }
 
     // 터치 효과
     const rect = e.currentTarget.getBoundingClientRect();
@@ -99,6 +125,7 @@ export const ViewerMode = () => {
 
   const handleBack = () => {
     if (confirm('체험을 종료하시겠습니까?')) {
+      endSession();
       resetViewer();
       setMode('home');
     }

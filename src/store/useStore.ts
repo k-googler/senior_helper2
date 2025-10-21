@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Project, Screen, Hotspot, AppMode, ViewerState } from '../types';
+import { Project, Screen, Hotspot, AppMode, ViewerState, SessionStats, SessionRecord } from '../types';
 
 interface AppState {
   // 앱 모드
@@ -52,6 +52,16 @@ interface AppState {
   importProject: (projectData: string) => Promise<{ success: boolean; error?: string }>;
   exportAllProjects: () => void;
   importProjects: (projectsData: string) => Promise<{ success: boolean; error?: string }>;
+
+  // 세션 통계
+  currentSession: SessionStats | null;
+  sessionHistory: SessionRecord[];
+  startSession: (projectId: string, projectName: string, totalScreens: number) => void;
+  endSession: () => void;
+  recordCorrectClick: () => void;
+  recordWrongClick: () => void;
+  getSessionHistory: (projectId?: string) => SessionRecord[];
+  clearSessionHistory: () => void;
 }
 
 const STORAGE_KEY = 'senior-helper-data';
@@ -72,6 +82,8 @@ export const useStore = create<AppState>((set, get) => ({
   viewerState: initialViewerState,
   history: [],
   historyIndex: -1,
+  currentSession: null,
+  sessionHistory: [],
 
   setMode: (mode) => set({ mode }),
 
@@ -540,5 +552,99 @@ export const useStore = create<AppState>((set, get) => ({
 
       console.log('↷ Redo:', historyIndex, '→', newIndex);
     }
+  },
+
+  // 세션 통계
+  startSession: (projectId, projectName, totalScreens) => {
+    const session: SessionStats = {
+      projectId,
+      projectName,
+      startTime: Date.now(),
+      endTime: null,
+      totalScreens,
+      completedScreens: 0,
+      wrongClicks: 0,
+      correctClicks: 0,
+    };
+    set({ currentSession: session });
+    console.log('📊 세션 시작:', projectName);
+  },
+
+  endSession: () => {
+    const { currentSession, sessionHistory } = get();
+    if (!currentSession) return;
+
+    const endTime = Date.now();
+    const duration = endTime - currentSession.startTime;
+    const completionRate = (currentSession.completedScreens / currentSession.totalScreens) * 100;
+    const totalClicks = currentSession.correctClicks + currentSession.wrongClicks;
+    const accuracy = totalClicks > 0 ? (currentSession.correctClicks / totalClicks) * 100 : 100;
+
+    const record: SessionRecord = {
+      id: `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      projectId: currentSession.projectId,
+      projectName: currentSession.projectName,
+      startTime: new Date(currentSession.startTime).toISOString(),
+      endTime: new Date(endTime).toISOString(),
+      duration,
+      totalScreens: currentSession.totalScreens,
+      completedScreens: currentSession.completedScreens,
+      wrongClicks: currentSession.wrongClicks,
+      correctClicks: currentSession.correctClicks,
+      completionRate,
+      accuracy,
+    };
+
+    const newHistory = [...sessionHistory, record];
+    set({
+      sessionHistory: newHistory,
+      currentSession: { ...currentSession, endTime },
+    });
+
+    // LocalStorage에 저장
+    try {
+      localStorage.setItem('senior-helper-sessions', JSON.stringify(newHistory));
+    } catch (error) {
+      console.error('Failed to save session history:', error);
+    }
+
+    console.log('📊 세션 종료:', {
+      duration: `${(duration / 1000).toFixed(1)}초`,
+      completionRate: `${completionRate.toFixed(1)}%`,
+      accuracy: `${accuracy.toFixed(1)}%`,
+    });
+  },
+
+  recordCorrectClick: () => {
+    set((state) => ({
+      currentSession: state.currentSession
+        ? {
+            ...state.currentSession,
+            correctClicks: state.currentSession.correctClicks + 1,
+            completedScreens: state.currentSession.completedScreens + 1,
+          }
+        : null,
+    }));
+  },
+
+  recordWrongClick: () => {
+    set((state) => ({
+      currentSession: state.currentSession
+        ? { ...state.currentSession, wrongClicks: state.currentSession.wrongClicks + 1 }
+        : null,
+    }));
+  },
+
+  getSessionHistory: (projectId) => {
+    const { sessionHistory } = get();
+    if (projectId) {
+      return sessionHistory.filter((s) => s.projectId === projectId);
+    }
+    return sessionHistory;
+  },
+
+  clearSessionHistory: () => {
+    set({ sessionHistory: [] });
+    localStorage.removeItem('senior-helper-sessions');
   },
 }));
