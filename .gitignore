@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# TypeScript
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

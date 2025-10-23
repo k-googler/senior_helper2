@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **State Management**: Zustand
 - **Animation**: Framer Motion
 - **Drag & Drop**: react-rnd
+- **Map**: react-kakao-maps-sdk (카카오맵 API)
 - **Storage**: LocalStorage
 
 ## Commands
@@ -52,12 +53,13 @@ npm run lint      # ESLint 실행
 - `Project`: 프로젝트 (여러 Screen 포함)
 - `Screen`: 화면 (이미지 + 여러 Hotspot)
 - `Hotspot`: 인터랙티브 영역 (위치, 크기, 액션)
-- `HotspotAction`: 액션 정의 (navigate, message, input, vibrate, none)
+- `HotspotAction`: 액션 정의 (navigate, message, input, map, vibrate, none)
 
 **액션 타입**:
 - `navigate`: 다음 화면으로 이동
 - `message`: 메시지 토스트 표시
 - `input`: 키보드 입력 시뮬레이션
+- `map`: 카카오맵 API 표시 (출발지/목적지 경로)
 - `vibrate`: 진동 효과
 - `none`: 액션 없음
 
@@ -135,6 +137,7 @@ src/
    - navigate: 화면 전환 (애니메이션 포함)
    - message: 토스트 메시지 표시
    - input: 키보드 입력 애니메이션
+   - map: 카카오맵 표시 (출발지/목적지 경로)
    - vibrate: 진동
 
 ### 4. 모바일 최적화
@@ -171,9 +174,10 @@ src/
 - ✅ 프로젝트 생성/편집/삭제
 - ✅ 이미지 업로드 및 화면 관리
 - ✅ 드래그로 인터랙티브 영역 지정 (react-rnd)
-- ✅ 5가지 액션 타입 (navigate, message, input, vibrate, none)
+- ✅ 6가지 액션 타입 (navigate, message, input, map, vibrate, none)
 - ✅ 힌트 및 음성 안내 설정
 - ✅ LocalStorage 자동 저장/불러오기
+- ✅ 카카오맵 API 연동 (출발지/목적지 경로 표시)
 
 **동적 효과**:
 - ✅ Framer Motion 화면 전환 애니메이션
@@ -215,20 +219,30 @@ src/
 
 ## Next Steps (다음 할 일)
 
-### Phase 2 - 지도 기능 업그레이드 (선택사항)
+### Phase 2 - 지도 기능 업그레이드 ✅ 완료 (2025-10-23)
 
-**옵션 2 (하이브리드)로 업그레이드**:
-- [ ] 카카오맵 API 키 발급 및 설정
-- [ ] 관리자 모드에서 출발지/목적지 주소 입력 UI 추가
-- [ ] 체험 모드에서 실제 카카오맵 표시
-- [ ] 미리 정한 주소만 선택 가능하도록 제한
-- [ ] 경로 표시 기능
+**하이브리드 방식으로 구현 완료**:
+- ✅ 카카오맵 SDK 설치 (`react-kakao-maps-sdk`)
+- ✅ 관리자 모드에서 출발지/목적지 주소 입력 UI 추가
+- ✅ 체험 모드에서 실제 카카오맵 표시
+- ✅ 핫스팟 영역에 지도 표시 (배경 이미지 위에 오버레이)
+- ✅ 경로 표시 기능 (Polyline으로 출발지-목적지 연결)
+- ✅ 주소 geocoding 기능 (카카오 Geocoder API)
 
-**필요한 파일 수정**:
-1. `src/types/index.ts` - 지도 관련 타입 추가
-2. `src/components/admin/ScreenEditor.tsx` - 지도 화면 설정 UI
-3. `src/components/viewer/ViewerMode.tsx` - 카카오맵 컴포넌트 통합
-4. `package.json` - `react-kakao-maps-sdk` 추가
+**구현 세부사항**:
+1. `src/types/index.ts` - `map` 액션 타입 및 지도 관련 필드 추가
+2. `src/components/admin/HotspotConfig.tsx` - 지도 API 옵션 및 주소 입력 UI
+3. `src/components/viewer/ViewerMode.tsx` - MapHotspot 컴포넌트 통합
+4. `src/components/viewer/KakaoMapViewer.tsx` - 카카오맵 컴포넌트 (재사용 가능)
+5. `package.json` - `react-kakao-maps-sdk` 의존성 추가
+6. `.env` - 카카오맵 API 키 설정
+
+**사용 방법**:
+1. [카카오 개발자 센터](https://developers.kakao.com/)에서 앱 생성 및 JavaScript 키 발급
+2. `.env` 파일에 `VITE_KAKAO_MAP_API_KEY=발급받은키` 설정
+3. 관리자 모드에서 핫스팟 생성 시 액션 타입을 "지도 API 표시" 선택
+4. 출발지/목적지 주소 입력 (예: "서울역", "광화문")
+5. 체험 모드에서 해당 핫스팟 영역에 실제 지도가 표시됨
 
 ### Phase 3 - 개선 사항
 

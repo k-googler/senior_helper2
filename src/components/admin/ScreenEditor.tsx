@@ -222,14 +222,14 @@ export const ScreenEditor = ({ screenId }: ScreenEditorProps) => {
                     width: (hotspot.width / 100) * rect.width,
                     height: (hotspot.height / 100) * rect.height,
                   }}
-                  onDragStop={(e, d) => {
+                  onDragStop={(_e, d) => {
                     if (!imageRef.current) return;
                     const rect = imageRef.current.getBoundingClientRect();
                     const newX = (d.x / rect.width) * 100;
                     const newY = (d.y / rect.height) * 100;
                     handleUpdateHotspot(hotspot.id, { x: newX, y: newY });
                   }}
-                  onResizeStop={(e, direction, ref, delta, position) => {
+                  onResizeStop={(_e, _direction, ref, _delta, position) => {
                     if (!imageRef.current) return;
                     const rect = imageRef.current.getBoundingClientRect();
                     const newWidth = (ref.offsetWidth / rect.width) * 100;

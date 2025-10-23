@@ -4,6 +4,7 @@ export type ActionType =
   | 'message'       // 메시지 표시
   | 'input'         // 키보드 입력
   | 'vibrate'       // 진동 효과
+  | 'map'           // 지도 API 표시
   | 'none';         // 액션 없음
 
 // 인터랙티브 영역 (핫스팟) 정의
@@ -27,6 +28,13 @@ export interface HotspotAction {
   inputMode?: 'auto' | 'manual'; // input 모드: auto(자동 입력) | manual(사용자 직접 입력)
   inputPlaceholder?: string; // input일 때 플레이스홀더
   delay?: number;     // 액션 실행 전 딜레이 (ms)
+  // 지도 API 관련
+  mapStartAddress?: string;  // 출발지 주소
+  mapEndAddress?: string;    // 목적지 주소
+  mapStartLat?: number;      // 출발지 위도
+  mapStartLng?: number;      // 출발지 경도
+  mapEndLat?: number;        // 목적지 위도
+  mapEndLng?: number;        // 목적지 경도
 }
 
 // 화면 정의
