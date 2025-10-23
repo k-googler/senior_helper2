@@ -23,8 +23,7 @@ export const ScreenEditor = ({ screenId }: ScreenEditorProps) => {
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
   const [currentDraw, setCurrentDraw] = useState<{ x: number; y: number } | null>(null);
   const [selectedHotspotId, setSelectedHotspotId] = useState<string | null>(null);
-  const [showConfig, setShowConfig] = useState(false);
-  const [editingName, setEditingName] = useState(false);
+  const [showConfigPopup, setShowConfigPopup] = useState(false);
 
   const imageRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +32,7 @@ export const ScreenEditor = ({ screenId }: ScreenEditorProps) => {
 
   useEffect(() => {
     setSelectedHotspotId(null);
+    setShowConfigPopup(false);
   }, [screenId]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -93,7 +93,7 @@ export const ScreenEditor = ({ screenId }: ScreenEditorProps) => {
 
     addHotspot(screenId, newHotspot);
     setSelectedHotspotId(newHotspot.id);
-    setShowConfig(true);
+    setShowConfigPopup(true);
 
     setIsDrawing(false);
     setDrawStart(null);
@@ -111,7 +111,7 @@ export const ScreenEditor = ({ screenId }: ScreenEditorProps) => {
       deleteHotspot(screenId, hotspotId);
       if (selectedHotspotId === hotspotId) {
         setSelectedHotspotId(null);
-        setShowConfig(false);
+        setShowConfigPopup(false);
       }
     }
   };
@@ -119,7 +119,8 @@ export const ScreenEditor = ({ screenId }: ScreenEditorProps) => {
   const handleSaveConfig = (action: HotspotAction, hint?: string) => {
     if (!screenId || !selectedHotspotId) return;
     handleUpdateHotspot(selectedHotspotId, { action, hint });
-    setShowConfig(false);
+    setShowConfigPopup(false);
+    setSelectedHotspotId(null);
   };
 
   const handleUpdateScreenName = () => {
@@ -176,124 +177,152 @@ export const ScreenEditor = ({ screenId }: ScreenEditorProps) => {
         </p>
       </div>
 
-      <div className="p-4">
-        {/* 이미지 영역 */}
-        <div
-          ref={imageRef}
-          className="relative bg-gray-100 rounded-lg overflow-hidden mx-auto"
-          style={{ maxWidth: '400px', aspectRatio: '9/19' }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={() => {
-            if (isDrawing) {
-              setIsDrawing(false);
-              setDrawStart(null);
-              setCurrentDraw(null);
-            }
-          }}
-        >
-          <img
-            src={currentScreen.imageUrl}
-            alt={currentScreen.name}
-            className="w-full h-full object-contain pointer-events-none select-none"
-            draggable={false}
-          />
+      <div className="p-4 flex justify-center items-start">
+        {/* 이미지 영역 - 체험 모드와 동일한 크기 */}
+        <div className="relative">
+          <div
+            ref={imageRef}
+            className="relative bg-gray-100 rounded-lg overflow-hidden shadow-xl"
+            style={{
+              width: '100%',
+              maxWidth: '400px',
+              aspectRatio: '9/19',
+            }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={() => {
+              if (isDrawing) {
+                setIsDrawing(false);
+                setDrawStart(null);
+                setCurrentDraw(null);
+              }
+            }}
+          >
+            <img
+              src={currentScreen.imageUrl}
+              alt={currentScreen.name}
+              className="w-full h-full object-contain pointer-events-none select-none"
+              draggable={false}
+            />
 
-          {/* 기존 핫스팟 */}
-          {currentScreen.hotspots.map((hotspot) => (
-            <Rnd
-              key={hotspot.id}
-              position={{ x: 0, y: 0 }}
-              size={{
-                width: `${hotspot.width}%`,
-                height: `${hotspot.height}%`,
-              }}
-              style={{
-                position: 'absolute',
-                left: `${hotspot.x}%`,
-                top: `${hotspot.y}%`,
-              }}
-              onDragStop={(e, d) => {
-                if (!imageRef.current) return;
-                const rect = imageRef.current.getBoundingClientRect();
-                const newX = (d.x / rect.width) * 100;
-                const newY = (d.y / rect.height) * 100;
-                handleUpdateHotspot(hotspot.id, { x: newX, y: newY });
-              }}
-              onResizeStop={(e, direction, ref, delta, position) => {
-                if (!imageRef.current) return;
-                const rect = imageRef.current.getBoundingClientRect();
-                const newWidth = (ref.offsetWidth / rect.width) * 100;
-                const newHeight = (ref.offsetHeight / rect.height) * 100;
-                const newX = (position.x / rect.width) * 100;
-                const newY = (position.y / rect.height) * 100;
-                handleUpdateHotspot(hotspot.id, {
-                  x: newX,
-                  y: newY,
-                  width: newWidth,
-                  height: newHeight,
-                });
-              }}
-              bounds="parent"
-              className={`
-                border-2 cursor-move
-                ${
-                  selectedHotspotId === hotspot.id
-                    ? 'border-indigo-500 bg-indigo-500/20'
-                    : 'border-yellow-400 bg-yellow-400/20'
-                }
-              `}
-              onClick={() => {
-                setSelectedHotspotId(hotspot.id);
-                setShowConfig(true);
-              }}
-            >
-              <div className="absolute top-0 right-0 flex gap-1 p-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteHotspot(hotspot.id);
+            {/* 기존 핫스팟 */}
+            {currentScreen.hotspots.map((hotspot) => {
+              if (!imageRef.current) return null;
+              const rect = imageRef.current.getBoundingClientRect();
+
+              return (
+                <Rnd
+                  key={hotspot.id}
+                  position={{
+                    x: (hotspot.x / 100) * rect.width,
+                    y: (hotspot.y / 100) * rect.height,
                   }}
-                  className="w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600"
+                  size={{
+                    width: (hotspot.width / 100) * rect.width,
+                    height: (hotspot.height / 100) * rect.height,
+                  }}
+                  onDragStop={(e, d) => {
+                    if (!imageRef.current) return;
+                    const rect = imageRef.current.getBoundingClientRect();
+                    const newX = (d.x / rect.width) * 100;
+                    const newY = (d.y / rect.height) * 100;
+                    handleUpdateHotspot(hotspot.id, { x: newX, y: newY });
+                  }}
+                  onResizeStop={(e, direction, ref, delta, position) => {
+                    if (!imageRef.current) return;
+                    const rect = imageRef.current.getBoundingClientRect();
+                    const newWidth = (ref.offsetWidth / rect.width) * 100;
+                    const newHeight = (ref.offsetHeight / rect.height) * 100;
+                    const newX = (position.x / rect.width) * 100;
+                    const newY = (position.y / rect.height) * 100;
+                    handleUpdateHotspot(hotspot.id, {
+                      x: newX,
+                      y: newY,
+                      width: newWidth,
+                      height: newHeight,
+                    });
+                  }}
+                  bounds="parent"
+                  className={`
+                    border-2 cursor-move
+                    ${
+                      selectedHotspotId === hotspot.id
+                        ? 'border-indigo-500 bg-indigo-500/20'
+                        : 'border-yellow-400 bg-yellow-400/20'
+                    }
+                  `}
+                  onClick={() => {
+                    setSelectedHotspotId(hotspot.id);
+                    setShowConfigPopup(true);
+                  }}
                 >
-                  ×
-                </button>
-              </div>
-              {hotspot.hint && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 truncate">
-                  {hotspot.hint}
-                </div>
-              )}
-            </Rnd>
-          ))}
+                  <div className="absolute top-0 right-0 flex gap-1 p-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteHotspot(hotspot.id);
+                      }}
+                      className="w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  {hotspot.hint && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 truncate">
+                      {hotspot.hint}
+                    </div>
+                  )}
+                </Rnd>
+              );
+            })}
 
-          {/* 드래그 중인 영역 */}
-          {isDrawing && drawStart && currentDraw && (
-            <div
-              className="absolute border-2 border-dashed border-indigo-500 bg-indigo-500/20 pointer-events-none"
-              style={{
-                left: `${Math.min(drawStart.x, currentDraw.x)}%`,
-                top: `${Math.min(drawStart.y, currentDraw.y)}%`,
-                width: `${Math.abs(currentDraw.x - drawStart.x)}%`,
-                height: `${Math.abs(currentDraw.y - drawStart.y)}%`,
-              }}
-            />
-          )}
-        </div>
-
-        {/* 핫스팟 설정 */}
-        {showConfig && selectedHotspot && screenId && (
-          <div className="mt-4">
-            <HotspotConfig
-              hotspot={selectedHotspot}
-              availableScreens={currentProject?.screens || []}
-              onSave={handleSaveConfig}
-              onCancel={() => setShowConfig(false)}
-            />
+            {/* 드래그 중인 영역 */}
+            {isDrawing && drawStart && currentDraw && (
+              <div
+                className="absolute border-2 border-dashed border-indigo-500 bg-indigo-500/20 pointer-events-none"
+                style={{
+                  left: `${Math.min(drawStart.x, currentDraw.x)}%`,
+                  top: `${Math.min(drawStart.y, currentDraw.y)}%`,
+                  width: `${Math.abs(currentDraw.x - drawStart.x)}%`,
+                  height: `${Math.abs(currentDraw.y - drawStart.y)}%`,
+                }}
+              />
+            )}
           </div>
-        )}
+        </div>
       </div>
+
+      {/* 핫스팟 설정 팝업 */}
+      {showConfigPopup && selectedHotspot && screenId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-800">인터랙션 설정</h3>
+              <button
+                onClick={() => {
+                  setShowConfigPopup(false);
+                  setSelectedHotspotId(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <HotspotConfig
+                hotspot={selectedHotspot}
+                availableScreens={currentProject?.screens || []}
+                onSave={handleSaveConfig}
+                onCancel={() => {
+                  setShowConfigPopup(false);
+                  setSelectedHotspotId(null);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

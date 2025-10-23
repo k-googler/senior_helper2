@@ -23,7 +23,9 @@ export interface HotspotAction {
   type: ActionType;
   target?: string;    // navigate일 때 다음 화면 ID
   message?: string;   // message일 때 표시할 메시지
-  inputValue?: string; // input일 때 입력될 값
+  inputValue?: string; // input일 때 기본값/예상 입력값
+  inputMode?: 'auto' | 'manual'; // input 모드: auto(자동 입력) | manual(사용자 직접 입력)
+  inputPlaceholder?: string; // input일 때 플레이스홀더
   delay?: number;     // 액션 실행 전 딜레이 (ms)
 }
 

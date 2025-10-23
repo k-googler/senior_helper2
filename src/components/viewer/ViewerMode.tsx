@@ -3,6 +3,7 @@ import { useStore } from '../../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { vibrate } from '../../utils/helpers';
 import { Screen, Hotspot } from '../../types';
+import { VirtualKeyboard } from './VirtualKeyboard';
 
 export const ViewerMode = () => {
   const {
@@ -17,6 +18,13 @@ export const ViewerMode = () => {
 
   const [showMessage, setShowMessage] = useState<string | null>(null);
   const [showInput, setShowInput] = useState<string | null>(null);
+  const [showKeyboard, setShowKeyboard] = useState(false);
+  const [inputConfig, setInputConfig] = useState<{
+    mode: 'auto' | 'manual';
+    placeholder?: string;
+    expectedValue?: string;
+  } | null>(null);
+  const [userInput, setUserInput] = useState('');
   const [showHint, setShowHint] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [touchEffect, setTouchEffect] = useState<{ x: number; y: number } | null>(null);
@@ -84,10 +92,24 @@ export const ViewerMode = () => {
         break;
 
       case 'input':
-        if (action.inputValue) {
-          vibrate(30);
-          setShowInput(action.inputValue);
-          setTimeout(() => setShowInput(null), 1500);
+        vibrate(30);
+        const mode = action.inputMode || 'auto';
+
+        if (mode === 'auto') {
+          // 자동 입력 모드 (기존 방식)
+          if (action.inputValue) {
+            setShowInput(action.inputValue);
+            setTimeout(() => setShowInput(null), 1500);
+          }
+        } else {
+          // 수동 입력 모드 (가상 키보드)
+          setInputConfig({
+            mode: 'manual',
+            placeholder: action.inputPlaceholder || '입력하세요',
+            expectedValue: action.inputValue,
+          });
+          setUserInput('');
+          setShowKeyboard(true);
         }
         break;
 
@@ -111,6 +133,29 @@ export const ViewerMode = () => {
         setCurrentScreen(currentProject.screens[0].id);
       }
     }
+  };
+
+  const handleKeyboardComplete = () => {
+    setShowKeyboard(false);
+
+    // 입력값 체크 (expectedValue가 있으면)
+    if (inputConfig?.expectedValue) {
+      const isCorrect = userInput.trim() === inputConfig.expectedValue.trim();
+      if (isCorrect) {
+        vibrate(50);
+        setShowMessage('정확합니다! 잘하셨어요!');
+        setTimeout(() => setShowMessage(null), 2000);
+      } else {
+        setShowMessage(`입력하신 값: ${userInput}`);
+        setTimeout(() => setShowMessage(null), 2000);
+      }
+    } else {
+      setShowMessage(`입력하신 값: ${userInput}`);
+      setTimeout(() => setShowMessage(null), 2000);
+    }
+
+    setInputConfig(null);
+    setUserInput('');
   };
 
   if (!currentProject) {
@@ -200,7 +245,7 @@ export const ViewerMode = () => {
       </div>
 
       {/* 화면 영역 */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentScreen.id}
@@ -209,7 +254,13 @@ export const ViewerMode = () => {
             exit={{ opacity: 0, scale: 1.05 }}
             transition={{ duration: 0.3 }}
             className="relative bg-white rounded-2xl shadow-2xl overflow-hidden"
-            style={{ maxWidth: '400px', width: '100%', aspectRatio: '9/19' }}
+            style={{
+              maxWidth: '400px',
+              width: '100%',
+              height: '100%',
+              maxHeight: 'calc(100vh - 120px)',
+              aspectRatio: '9/19',
+            }}
           >
             {/* 배경 이미지 */}
             <img
@@ -276,9 +327,9 @@ export const ViewerMode = () => {
               </motion.div>
             ))}
 
-            {/* 키보드 입력 효과 */}
+            {/* 자동 키보드 입력 효과 */}
             <AnimatePresence>
-              {showInput && (
+              {showInput && !showKeyboard && (
                 <motion.div
                   initial={{ y: '100%' }}
                   animate={{ y: 0 }}
@@ -295,6 +346,18 @@ export const ViewerMode = () => {
                     </motion.span>
                   </div>
                 </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* 가상 키보드 */}
+            <AnimatePresence>
+              {showKeyboard && inputConfig && (
+                <VirtualKeyboard
+                  onInput={setUserInput}
+                  onComplete={handleKeyboardComplete}
+                  placeholder={inputConfig.placeholder}
+                  initialValue=""
+                />
               )}
             </AnimatePresence>
           </motion.div>

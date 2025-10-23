@@ -18,6 +18,12 @@ export const HotspotConfig = ({
   const [targetScreen, setTargetScreen] = useState(hotspot.action.target || '');
   const [message, setMessage] = useState(hotspot.action.message || '');
   const [inputValue, setInputValue] = useState(hotspot.action.inputValue || '');
+  const [inputMode, setInputMode] = useState<'auto' | 'manual'>(
+    hotspot.action.inputMode || 'auto'
+  );
+  const [inputPlaceholder, setInputPlaceholder] = useState(
+    hotspot.action.inputPlaceholder || '입력하세요'
+  );
   const [delay, setDelay] = useState(hotspot.action.delay || 0);
   const [hint, setHint] = useState(hotspot.hint || '');
 
@@ -28,7 +34,11 @@ export const HotspotConfig = ({
       type: actionType,
       ...(actionType === 'navigate' && targetScreen && { target: targetScreen }),
       ...(actionType === 'message' && message && { message }),
-      ...(actionType === 'input' && inputValue && { inputValue }),
+      ...(actionType === 'input' && {
+        inputValue,
+        inputMode,
+        inputPlaceholder,
+      }),
       ...(delay > 0 && { delay }),
     };
 
@@ -36,9 +46,7 @@ export const HotspotConfig = ({
   };
 
   return (
-    <div className="bg-gray-50 rounded-lg p-4 border-2 border-indigo-200">
-      <h4 className="font-bold text-gray-800 mb-4">인터랙션 설정</h4>
-
+    <div>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* 액션 타입 */}
         <div>
@@ -98,18 +106,67 @@ export const HotspotConfig = ({
 
         {/* 키보드 입력 */}
         {actionType === 'input' && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              입력될 텍스트
-            </label>
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="예: 서울역"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                입력 모드
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="auto"
+                    checked={inputMode === 'auto'}
+                    onChange={(e) => setInputMode(e.target.value as 'auto' | 'manual')}
+                    className="w-4 h-4 text-indigo-600"
+                  />
+                  <span className="text-sm">자동 입력 (미리 정한 텍스트 표시)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="manual"
+                    checked={inputMode === 'manual'}
+                    onChange={(e) => setInputMode(e.target.value as 'auto' | 'manual')}
+                    className="w-4 h-4 text-indigo-600"
+                  />
+                  <span className="text-sm">수동 입력 (가상 키보드)</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {inputMode === 'auto' ? '입력될 텍스트' : '예상 입력값 (정답)'}
+              </label>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="예: 서울역"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              {inputMode === 'manual' && (
+                <p className="text-xs text-gray-500 mt-1">
+                  사용자 입력과 비교할 정답 (선택사항)
+                </p>
+              )}
+            </div>
+
+            {inputMode === 'manual' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  플레이스홀더
+                </label>
+                <input
+                  type="text"
+                  value={inputPlaceholder}
+                  onChange={(e) => setInputPlaceholder(e.target.value)}
+                  placeholder="예: 목적지를 입력하세요"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            )}
           </div>
         )}
 
