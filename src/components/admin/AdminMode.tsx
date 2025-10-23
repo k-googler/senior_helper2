@@ -13,6 +13,10 @@ export const AdminMode = () => {
     setMode,
     addProject,
     updateProject,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
   } = useStore();
 
   const [selectedScreenId, setSelectedScreenId] = useState<string | null>(null);
@@ -26,6 +30,26 @@ export const AdminMode = () => {
       setShowProjectSettings(true);
     }
   }, [currentProjectId]);
+
+  // 키보드 단축키 (Ctrl+Z: Undo, Ctrl+Y: Redo)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        if (canUndo()) {
+          undo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+        e.preventDefault();
+        if (canRedo()) {
+          redo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canUndo, canRedo, undo, redo]);
 
   const handleSaveProjectSettings = (name: string, description: string) => {
     if (currentProjectId && currentProject) {
@@ -100,12 +124,30 @@ export const AdminMode = () => {
               <p className="text-sm text-gray-500">관리자 모드</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowProjectSettings(true)}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-          >
-            프로젝트 설정
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={undo}
+              disabled={!canUndo()}
+              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="실행 취소 (Ctrl+Z)"
+            >
+              ↶ 실행 취소
+            </button>
+            <button
+              onClick={redo}
+              disabled={!canRedo()}
+              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="다시 실행 (Ctrl+Y)"
+            >
+              ↷ 다시 실행
+            </button>
+            <button
+              onClick={() => setShowProjectSettings(true)}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+            >
+              프로젝트 설정
+            </button>
+          </div>
         </div>
       </header>
 

@@ -68,3 +68,31 @@ export interface ViewerState {
   completedScreens: string[];
   startTime: number | null;
 }
+
+// 세션 통계
+export interface SessionStats {
+  projectId: string;
+  projectName: string;
+  startTime: number;
+  endTime: number | null;
+  totalScreens: number;
+  completedScreens: number;
+  wrongClicks: number;
+  correctClicks: number;
+}
+
+// 세션 기록 (저장용)
+export interface SessionRecord {
+  id: string;
+  projectId: string;
+  projectName: string;
+  startTime: string;
+  endTime: string;
+  duration: number;        // 총 소요 시간 (ms)
+  totalScreens: number;
+  completedScreens: number;
+  wrongClicks: number;
+  correctClicks: number;
+  completionRate: number;  // 완료율 (%)
+  accuracy: number;        // 정확도 (%)
+}

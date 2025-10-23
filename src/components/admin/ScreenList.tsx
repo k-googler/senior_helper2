@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { generateId, fileToBase64 } from '../../utils/helpers';
 import { Screen } from '../../types';
@@ -12,6 +12,7 @@ interface ScreenListProps {
 export const ScreenList = ({ selectedScreenId, onSelectScreen }: ScreenListProps) => {
   const { projects, currentProjectId, addScreen, deleteScreen } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
   const screens = currentProject?.screens || [];
@@ -20,8 +21,25 @@ export const ScreenList = ({ selectedScreenId, onSelectScreen }: ScreenListProps
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsUploading(true);
+
     try {
+      const originalSize = file.size;
+      const startTime = Date.now();
+
       const base64 = await fileToBase64(file);
+
+      // 압축 통계 계산
+      const compressedSize = Math.round((base64.length * 3) / 4); // base64는 약 33% 크기 증가
+      const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+      const processingTime = Date.now() - startTime;
+
+      console.log('📊 이미지 압축 완료:');
+      console.log(`  원본 크기: ${(originalSize / 1024).toFixed(2)} KB`);
+      console.log(`  압축 후: ${(compressedSize / 1024).toFixed(2)} KB`);
+      console.log(`  압축률: ${compressionRatio}%`);
+      console.log(`  처리 시간: ${processingTime}ms`);
+
       const newScreen: Screen = {
         id: generateId(),
         name: `화면 ${screens.length + 1}`,
@@ -35,11 +53,12 @@ export const ScreenList = ({ selectedScreenId, onSelectScreen }: ScreenListProps
     } catch (error) {
       alert('이미지 업로드에 실패했습니다.');
       console.error(error);
-    }
-
-    // 파일 입력 초기화
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    } finally {
+      setIsUploading(false);
+      // 파일 입력 초기화
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -48,7 +67,10 @@ export const ScreenList = ({ selectedScreenId, onSelectScreen }: ScreenListProps
     if (confirm('이 화면을 삭제하시겠습니까?')) {
       deleteScreen(screenId);
       if (selectedScreenId === screenId) {
-        onSelectScreen(screens[0]?.id || null);
+        const remainingScreens = screens.filter(s => s.id !== screenId);
+        if (remainingScreens.length > 0) {
+          onSelectScreen(remainingScreens[0].id);
+        }
       }
     }
   };
@@ -62,10 +84,20 @@ export const ScreenList = ({ selectedScreenId, onSelectScreen }: ScreenListProps
 
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="w-full mb-4 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+        disabled={isUploading}
+        className="w-full mb-4 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <span className="text-xl">+</span>
-        화면 추가
+        {isUploading ? (
+          <>
+            <span className="animate-spin">⏳</span>
+            압축 중...
+          </>
+        ) : (
+          <>
+            <span className="text-xl">+</span>
+            화면 추가
+          </>
+        )}
       </button>
 
       <input
