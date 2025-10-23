@@ -26,6 +26,9 @@ export const HotspotConfig = ({
   );
   const [delay, setDelay] = useState(hotspot.action.delay || 0);
   const [hint, setHint] = useState(hotspot.hint || '');
+  // 지도 관련 상태
+  const [mapStartAddress, setMapStartAddress] = useState(hotspot.action.mapStartAddress || '');
+  const [mapEndAddress, setMapEndAddress] = useState(hotspot.action.mapEndAddress || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +41,10 @@ export const HotspotConfig = ({
         inputValue,
         inputMode,
         inputPlaceholder,
+      }),
+      ...(actionType === 'map' && {
+        mapStartAddress,
+        mapEndAddress,
       }),
       ...(delay > 0 && { delay }),
     };
@@ -61,6 +68,7 @@ export const HotspotConfig = ({
             <option value="navigate">다음 화면으로 이동</option>
             <option value="message">메시지 표시</option>
             <option value="input">키보드 입력</option>
+            <option value="map">지도 API 표시</option>
             <option value="vibrate">진동 효과</option>
             <option value="none">액션 없음</option>
           </select>
@@ -167,6 +175,52 @@ export const HotspotConfig = ({
                 />
               </div>
             )}
+          </div>
+        )}
+
+        {/* 지도 API */}
+        {actionType === 'map' && (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                출발지 주소
+              </label>
+              <input
+                type="text"
+                value={mapStartAddress}
+                onChange={(e) => setMapStartAddress(e.target.value)}
+                placeholder="예: 서울역"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                출발지 주소를 입력하세요 (도로명 또는 지번 주소)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                목적지 주소
+              </label>
+              <input
+                type="text"
+                value={mapEndAddress}
+                onChange={(e) => setMapEndAddress(e.target.value)}
+                placeholder="예: 광화문"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                목적지 주소를 입력하세요 (도로명 또는 지번 주소)
+              </p>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs text-blue-700">
+                💡 <strong>팁:</strong> 지도는 체험 모드에서 이 핫스팟 영역에 표시됩니다.
+                출발지와 목적지를 설정하면 경로가 지도에 표시됩니다.
+              </p>
+            </div>
           </div>
         )}
 

@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 
 interface ScreenListProps {
   selectedScreenId: string | null;
-  onSelectScreen: (screenId: string) => void;
+  onSelectScreen: (screenId: string | null) => void;
 }
 
 export const ScreenList = ({ selectedScreenId, onSelectScreen }: ScreenListProps) => {
